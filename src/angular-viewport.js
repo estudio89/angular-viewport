@@ -11,6 +11,8 @@ angular.module('viewportFactory',[])
 			- arraySort: function used for sorting items received from the server. This function receives two objects, "a" and "b", an should
 						 return -1 if "a" comes before "b", 1 if "a" comes after "b" and 0 if both are equal. This function is optional.
 			- queryArgs: object to be passed as a parameter to ObjectService when new objects are fetched.
+			- autoSearch: boolean indicating if search should be performed as the user is typing. If false, onSearch() must be called whenever
+					      the search must be performed. Defaults to false.
 			- initialQueryArgs: object to be passed as a parameter to ObjectService when new objects are fetched for the first time. Note
 						that in the first fetch, both these args as well as "queryArgs" will be sent to the server.
 			- shouldLoad: boolean indicating if the objects should be loaded from the server right after the viewport is initialized.
@@ -57,7 +59,8 @@ angular.module('viewportFactory',[])
 			arrayAttr: "results",
 			reverse: false,
 			shouldLoad: true,
-			notifiableUpdates: false
+			notifiableUpdates: false,
+			autoSearch: false
 		};
 
 		options = angular.extend({}, defaultOptions, options);
@@ -77,7 +80,10 @@ angular.module('viewportFactory',[])
 		$scope.arraySort = options['arraySort'];
 
 		// Object passed as an argument to the query method
-		$scope.queryArgs = angular.extend({}, options['queryArgs'])
+		$scope.queryArgs = angular.extend({}, options['queryArgs']);
+
+		// Boolean indicating if search should be performed as user types
+		$scope.autoSearch = options["autoSearch"];
 
 		// Object passed as an argument to the query method only in the first query
 		$scope.initialQueryArgs = angular.extend({}, options['initialQueryArgs']);
@@ -591,6 +597,23 @@ angular.module('viewportFactory',[])
 			$scope.allSearchResults.length = 0;
 			$scope.resetViewport();
 		};
+
+
+		if ($scope.autoSearch) {
+			$scope.$watch(function(){
+				return $scope.searchText;
+			}, function(newVal, oldVal) {
+				if (newVal === oldVal) {
+					return;
+				}
+
+				if ($scope.searchText === "") {
+					$scope.onClearSearch();
+				} else {
+					$scope.onSearch();
+				}
+			})
+		}
 
 		/**
 			Makes the "isSearchDone" property available
