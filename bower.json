@@ -13,9 +13,8 @@
   "license": "Apache License 2.0",
   "homepage": "https://github.com/estudio89/angular-viewport",
   "ignore": [
-	"bower.json",
-	"LICENSE",
-	"NOTICE",
-	"readme.md",
+  	"bower.json",
+  	"LICENSE",
+  	"NOTICE",
   ]
 }
