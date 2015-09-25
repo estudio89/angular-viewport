@@ -296,7 +296,7 @@ angular.module('viewportFactory',[])
 
 			$scope.pagination.page = pageNumber - 1;
 			$scope.pagination.moreOnServer = true;
-			$scope.onLoadMore();
+			$scope.onLoadMore(true);
 		}
 
 		/**
@@ -640,7 +640,7 @@ angular.module('viewportFactory',[])
 		/**
 			Callback for the search button
 		*/
-		$scope.onSearch = function () {
+		$scope.onSearch = function (hideLoading) {
 			if ($scope.searchText === '') {
 				return $scope.onClearSearch();
 			}
@@ -650,10 +650,12 @@ angular.module('viewportFactory',[])
 
 			$scope.flags.isSearching = true;
 			$scope.currentSearch = $scope.searchText;
-			$scope.objectsViewport = [];
+			if (!$scope.autoSearch) {
+				$scope.objectsViewport = [];
+			}
 
 			angular.extend($scope.pagination, emptyPagination)
-			$scope.onLoadMore();
+			$scope.onLoadMore(hideLoading);
 
 		};
 
@@ -672,6 +674,9 @@ angular.module('viewportFactory',[])
 		};
 
 
+		/**
+			Automatic searching as the user types.
+		*/
 		if ($scope.autoSearch) {
 			$scope.$watch(function(){
 				return $scope.searchText;
@@ -683,7 +688,7 @@ angular.module('viewportFactory',[])
 				if ($scope.searchText === "") {
 					$scope.onClearSearch();
 				} else {
-					$scope.onSearch();
+					$scope.onSearch(true);
 				}
 			})
 		}
@@ -745,7 +750,7 @@ angular.module('viewportFactory',[])
 
 			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page - 2 > 1 && pagination.page == pagination.numberPages" ng-bind="pagination.page - 2" ng-click="onMoveToPage(pagination.page - 2)"></a>' +
 
-			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page - 1 > 1" ng-bind="pagination.page - 1"></a>' +
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page - 1 > 1" ng-bind="pagination.page - 1" ng-click="onMoveToPage(pagination.page - 1)"></a>' +
 
 			'<a class="btn btn-primary paging-buttons current" ng-bind="pagination.page"></a>' +
 
