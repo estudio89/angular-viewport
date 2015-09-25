@@ -1,5 +1,17 @@
 angular.module('viewportFactory',[])
 
+.directive('paginationControls',[function(){
+
+	return {
+		restrict: 'E',
+		templateUrl: '/viewport/pagination.html',
+		link: function(scope, element, attrs) {
+
+		}
+
+	}
+}])
+
 .factory('ViewportFactory', ['$interval','$rootScope', function($interval, $rootScope) {
 
 	/**
@@ -10,7 +22,8 @@ angular.module('viewportFactory',[])
 			- arrayAttr: the name of the attribute of the object sent by the server that holds the array of items. Defaults to "results".
 			- arraySort: function used for sorting items received from the server. This function receives two objects, "a" and "b", an should
 						 return -1 if "a" comes before "b", 1 if "a" comes after "b" and 0 if both are equal. This function is optional.
-			- queryArgs: object to be passed as a parameter to ObjectService when new objects are fetched.
+			- queryArgs: object to be passed as a parameter to ObjectService when new objects are fetched. If the scope has a method called "getQueryArgs",
+					     this method will be called instead.
 			- autoSearch: boolean indicating if search should be performed as the user is typing. If false, onSearch() must be called whenever
 					      the search must be performed. Defaults to false.
 			- initialQueryArgs: object to be passed as a parameter to ObjectService when new objects are fetched for the first time. Note
@@ -30,6 +43,7 @@ angular.module('viewportFactory',[])
 						    be used only when using DataSyncHelper.
 			- eventPolling: string indicating the name of the event that should trigger a reprocessing of the viewport. This event should
 						    be used only when using GlobalPolling.
+			- caching: boolean indicating if caching is enabled. Defaults to true;
 
 		Pre processing updates:
 			If some action is needed before processing an update, the original scope can implement the method $scope.preProcessUpdate. If implemented,
@@ -60,7 +74,8 @@ angular.module('viewportFactory',[])
 			reverse: false,
 			shouldLoad: true,
 			notifiableUpdates: false,
-			autoSearch: false
+			autoSearch: false,
+			caching: true
 		};
 
 		options = angular.extend({}, defaultOptions, options);
@@ -84,6 +99,9 @@ angular.module('viewportFactory',[])
 
 		// Boolean indicating if search should be performed as user types
 		$scope.autoSearch = options["autoSearch"];
+
+		// Boolean indicating if pages should be cached
+		$scope.caching = options["caching"];
 
 		// Object passed as an argument to the query method only in the first query
 		$scope.initialQueryArgs = angular.extend({}, options['initialQueryArgs']);
@@ -181,6 +199,19 @@ angular.module('viewportFactory',[])
 
 		*/
 		$scope.resetViewport = function () {
+			if (!$scope.caching) {
+				$scope.objectsViewport.length = 0;
+				var allItems;
+				if ($scope.flags.isSearching) {
+					allItems = $scope.allSearchResults;
+				} else {
+					allItems = $scope.allObjects;
+				}
+				Array.prototype.push.apply($scope.objectsViewport, allItems);
+				calculateNumberPages();
+				return;
+			}
+
 			if (typeof $scope.arraySort !== "undefined") {
 				$scope.allObjects.sort($scope.arraySort);
 			}
@@ -256,7 +287,16 @@ angular.module('viewportFactory',[])
 			}
 			$scope.pagination.page -= 1;
 			$scope.pagination.previous = $scope.pagination.page > 1;
-			$scope.resetViewport();
+
+			if ($scope.caching) {
+				$scope.resetViewport();
+			} else {
+				// Subtract 1 page again so that we can ask the server
+				// to load the next one
+				$scope.pagination.page -= 1;
+				$scope.pagination.moreOnServer = true;
+				$scope.onLoadMore();
+			}
 		};
 
 		/**
@@ -267,11 +307,17 @@ angular.module('viewportFactory',[])
 			if (!$scope.pageSize) {
 				return;
 			}
-			var cachedArray = $scope.flags.isSearching ? $scope.allSearchResults : $scope.allObjects;
-			if ($scope.objectsViewport.length > 0) {
-				$scope.pagination.firstItem = cachedArray.indexOfObject($scope.objectsViewport[0]) + 1;
-				$scope.pagination.lastItem = cachedArray.indexOfObject($scope.objectsViewport[$scope.objectsViewport.length - 1]) + 1;
+			if ($scope.caching) {
+				var cachedArray = $scope.flags.isSearching ? $scope.allSearchResults : $scope.allObjects;
+				if ($scope.objectsViewport.length > 0) {
+					$scope.pagination.firstItem = cachedArray.indexOfObject($scope.objectsViewport[0]) + 1;
+					$scope.pagination.lastItem = cachedArray.indexOfObject($scope.objectsViewport[$scope.objectsViewport.length - 1]) + 1;
+				}
+			} else {
+				$scope.pagination.firstItem = $scope.pageSize * ($scope.pagination.page - 1) + 1;
+				$scope.pagination.lastItem = $scope.pagination.firstItem + $scope.objectsViewport.length - 1;
 			}
+
 			$scope.pagination.numberPages = Math.ceil($scope.pagination.numberResults/$scope.pageSize);
 		}
 
@@ -349,7 +395,13 @@ angular.module('viewportFactory',[])
 			cached, this is only called when there are no more items in cache.
 		*/
 		function loadFromServer(isInitial, callback) {
-			var queryParams = angular.copy($scope.queryArgs);
+			var queryParams;
+			if (typeof $scope.getQueryArgs !== "undefined") {
+				queryParams = $scope.getQueryArgs(isInitial);
+			} else {
+				queryParams = angular.copy($scope.queryArgs);
+			}
+
 			angular.extend(queryParams, {page:$scope.pagination.page + 1});
 
 			if (isInitial) {
@@ -398,7 +450,7 @@ angular.module('viewportFactory',[])
 			}
 
 			if (!$scope.flags.isSearching || backgroundUpdate){
-				if (isInitial) {
+				if (isInitial || !$scope.caching) {
 					$scope.allObjects.length = 0;
 				}
 				var addToArray = $scope.reverse ? Array.prototype.unshift : Array.prototype.push;
@@ -417,7 +469,7 @@ angular.module('viewportFactory',[])
 					$scope.resetViewport();
 				}
 			} else {
-				if (isInitial) {
+				if (isInitial || !$scope.caching) {
 					$scope.allSearchResults.length = 0;
 				}
 				Array.prototype.push.apply($scope.allSearchResults,arrayData);
@@ -651,4 +703,41 @@ angular.module('viewportFactory',[])
 		scopeToViewport: scopeToViewport
 	};
 
-}]);
+}])
+
+
+.run(['$templateCache', function($templateCache){
+	var template = "" +
+		'<div class="bottom">' +
+		//Pagination info
+		'<div class="dataTables_info col-md-6" style="padding-top: 0.755em;">' +
+			'Exibindo itens {{ pagination.firstItem }} a {{ pagination.lastItem }} de um total de {{ pagination.numberResults }}.' +
+		'</div>' +
+
+		//Pagination buttons
+		'<div class="col-md-6 text-right">' +
+			'<a class="btn btn-primary paging-buttons" ng-click="onPreviousPage()" ng-disabled="!pagination.previous">Anterior</a>' +
+
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.numberPages >= 1 && pagination.page > 1">1</a>' +
+
+			'<span ng-show="pagination.page >= 4">...</span>' +
+
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page - 2 > 1 && pagination.page == pagination.numberPages" ng-bind="pagination.page - 2"></a>' +
+
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page - 1 > 1" ng-bind="pagination.page - 1"></a>' +
+
+			'<a class="btn btn-primary paging-buttons current" ng-bind="pagination.page"></a>' +
+
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page + 1 < pagination.numberPages" ng-bind="pagination.page + 1"></a>' +
+
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page + 2 < pagination.numberPages && pagination.page < 3" ng-bind="pagination.page + 2"></a>' +
+
+			'<span ng-show="pagination.page < pagination.numberPages - 1">...</span>' +
+
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.numberPages > 1 && pagination.page < pagination.numberPages" ng-bind="pagination.numberPages"></a>' +
+
+			'<a class="btn btn-primary paging-buttons" ng-click="onNextPage()" ng-disabled="!pagination.more || flags.isLoading || flags.isLoadingMore">Próxima</a>' +
+		'</div>' +
+	'</div>';
+	$templateCache.put('/viewport/pagination.html', template);
+}]);;
