@@ -1,7 +1,7 @@
 {
   "name": "angular-viewport",
   "description": "angular-viewport allows for easy display of tabular data, providing easy pagination of data fetched from the server.",
-  "main": "angular-viewport.js",
+  "main": "src/angular-viewport.js",
   "keywords": [
     "angular",
     "angularjs",
@@ -13,9 +13,8 @@
   "license": "Apache License 2.0",
   "homepage": "https://github.com/estudio89/angular-viewport",
   "ignore": [
-	"bower.json",
-	"LICENSE",
-	"NOTICE",
-	"readme.md",
+  	"bower.json",
+  	"LICENSE",
+  	"NOTICE"
   ]
 }
