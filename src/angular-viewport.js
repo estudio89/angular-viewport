@@ -279,6 +279,27 @@ angular.module('viewportFactory',[])
 		};
 
 		/**
+			Move to a specific page (only possible when caching is disabled)
+		*/
+		$scope.onMoveToPage = function(pageNumber) {
+			if ($scope.caching) {
+				throw "Moving to a specific page is only possible when caching is not enabled.";
+			}
+
+			if (pageNumber > $scope.pagination.numberPages || pageNumber < 1) {
+				throw "Invalid page number: " + pageNumber;
+			}
+
+			if (pageNumber == $scope.pagination.page) {
+				return;
+			}
+
+			$scope.pagination.page = pageNumber - 1;
+			$scope.pagination.moreOnServer = true;
+			$scope.onLoadMore();
+		}
+
+		/**
 			Recalculates the viewport to move to the previous page.
 		*/
 		$scope.onPreviousPage = function() {
@@ -718,23 +739,23 @@ angular.module('viewportFactory',[])
 		'<div class="col-md-6 text-right">' +
 			'<a class="btn btn-primary paging-buttons" ng-click="onPreviousPage()" ng-disabled="!pagination.previous">Anterior</a>' +
 
-			'<a class="btn btn-primary paging-buttons" ng-show="pagination.numberPages >= 1 && pagination.page > 1">1</a>' +
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.numberPages >= 1 && pagination.page > 1" ng-click="onMoveToPage(1)">1</a>' +
 
 			'<span ng-show="pagination.page >= 4">...</span>' +
 
-			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page - 2 > 1 && pagination.page == pagination.numberPages" ng-bind="pagination.page - 2"></a>' +
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page - 2 > 1 && pagination.page == pagination.numberPages" ng-bind="pagination.page - 2" ng-click="onMoveToPage(pagination.page - 2)"></a>' +
 
 			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page - 1 > 1" ng-bind="pagination.page - 1"></a>' +
 
 			'<a class="btn btn-primary paging-buttons current" ng-bind="pagination.page"></a>' +
 
-			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page + 1 < pagination.numberPages" ng-bind="pagination.page + 1"></a>' +
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page + 1 < pagination.numberPages" ng-bind="pagination.page + 1" ng-click="onMoveToPage(pagination.page + 1)"></a>' +
 
-			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page + 2 < pagination.numberPages && pagination.page < 3" ng-bind="pagination.page + 2"></a>' +
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.page + 2 < pagination.numberPages && pagination.page < 3" ng-bind="pagination.page + 2" ng-click="onMoveToPage(pagination.page + 2)"></a>' +
 
 			'<span ng-show="pagination.page < pagination.numberPages - 1">...</span>' +
 
-			'<a class="btn btn-primary paging-buttons" ng-show="pagination.numberPages > 1 && pagination.page < pagination.numberPages" ng-bind="pagination.numberPages"></a>' +
+			'<a class="btn btn-primary paging-buttons" ng-show="pagination.numberPages > 1 && pagination.page < pagination.numberPages" ng-bind="pagination.numberPages" ng-click="onMoveToPage(pagination.numberPages)"></a>' +
 
 			'<a class="btn btn-primary paging-buttons" ng-click="onNextPage()" ng-disabled="!pagination.more || flags.isLoading || flags.isLoadingMore">Próxima</a>' +
 		'</div>' +
