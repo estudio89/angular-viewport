@@ -437,6 +437,7 @@ angular.module('viewportFactory',[])
 			}
 
 			angular.extend(queryParams, {page:$scope.pagination.page + 1});
+			var dontIncrementPage = false;
 
 			if (isInitial) {
 				if ($scope.allowLocalStorage) { // Getting objects from local cache
@@ -449,8 +450,8 @@ angular.module('viewportFactory',[])
 						var data = localStorageService.get($scope.storageIdentifier);
 						if (typeof data !== "undefined" && data !== null) {
 							processServerResults(data, isInitial);
-							$scope.pagination.page -= 1;
 							isInitial = false;
+							dontIncrementPage = true;
 						}
 					}
 				}
@@ -462,7 +463,7 @@ angular.module('viewportFactory',[])
 			}
 
 			ObjectService.query(queryParams,function(data) {
-				processServerResults(data, isInitial);
+				processServerResults(data, isInitial, dontIncrementPage);
 			});
 		};
 
@@ -474,7 +475,7 @@ angular.module('viewportFactory',[])
 			- Resets the viewport
 			- Changes loading flags
 		*/
-		function processServerResults(data, isInitial, backgroundUpdate) {
+		function processServerResults(data, isInitial, backgroundUpdate, dontIncrementPage) {
 			var arrayData;
 			var isArray = angular.isArray(data);
 			if (!isArray) {
@@ -485,13 +486,18 @@ angular.module('viewportFactory',[])
 			}
 
 			if (backgroundUpdate) {
-				paginationCache.page += 1;
+				if (!dontIncrementPage) { // this flag is used when rebuilding the storage cache
+					paginationCache.page += 1;
+				}
+
 				paginationCache.previous = paginationCache.page > 1;
 				paginationCache.more = data.next !== null;
 				paginationCache.moreOnServer = paginationCache.more;
 				paginationCache.numberResults = data.count;
 			} else {
-				$scope.pagination.page += 1;
+				if (!dontIncrementPage) { // this flag is used when rebuilding the storage cache
+					$scope.pagination.page += 1;
+				}
 				$scope.pagination.previous = $scope.pagination.page > 1;
 				$scope.pagination.more = data.next !== null;
 				$scope.pagination.moreOnServer = $scope.pagination.more;
