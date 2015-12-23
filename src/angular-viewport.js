@@ -12,12 +12,14 @@ angular.module('viewportFactory',[])
 	}
 }])
 
-.factory('ViewportFactory', ['$interval','$rootScope', function($interval, $rootScope) {
+.factory('ViewportFactory', ['$interval','$rootScope', '$injector', function($interval, $rootScope, $injector) {
 
 	/**
 		Options available:
 			- scope (required): the scope that will be transformed.
 			- ObjectService (required): the service that will be queried
+			- allowLocalStorage: boolean indicating if local storage cache should be used. Default: false.
+			- storageIdentifier: string that is required when allowLocalStorage is true. It is used for identifying this viewport's objects in storage.
 			- pageSize: number of items per page
 			- arrayAttr: the name of the attribute of the object sent by the server that holds the array of items. Defaults to "results".
 			- arraySort: function used for sorting items received from the server. This function receives two objects, "a" and "b", an should
@@ -83,8 +85,19 @@ angular.module('viewportFactory',[])
 		var $scope = options['scope'];
 		var ObjectService = options['ObjectService'];
 
+		// Boolean indicating if local storage is enabled
+		$scope.allowLocalStorage = options['allowLocalStorage'] || false;
+
+		// Local storage identifier
+		$scope.storageIdentifier = options['storageIdentifier'];
+
 		// Number of items per page - can be undefined if not paginating
 		$scope.pageSize = options['pageSize'];
+
+		// Boolean indicating if paginated items offer a "previous" button.
+		// If false, then when paginating more items are added to the viewport
+		// but are never removed
+		$scope.previousPagination = typeof options['previousPagination'] === "undefined" ? true : options['previousPagination'];
 
 		// Attribute that should be accessed to get the array of items sent by the server
 		// If undefined, the results received are expected to be an object with a "results" property
@@ -217,7 +230,7 @@ angular.module('viewportFactory',[])
 			}
 			if ($scope.pageSize) {
 				var cachedArray = $scope.flags.isSearching ? $scope.allSearchResults.slice(0) : $scope.allObjects.slice(0);
-				var startIdx = $scope.pageSize*($scope.pagination.page - 1);
+				var startIdx = $scope.previousPagination ? $scope.pageSize*($scope.pagination.page - 1) : 0;
 				var endIdx = Math.min($scope.pageSize*$scope.pagination.page, cachedArray.length);
 				if ($scope.reverse) {
 					cachedArray.reverse();
@@ -426,6 +439,21 @@ angular.module('viewportFactory',[])
 			angular.extend(queryParams, {page:$scope.pagination.page + 1});
 
 			if (isInitial) {
+				if ($scope.allowLocalStorage) { // Getting objects from local cache
+					var localStorageService;
+					try {
+						localStorageService = $injector.get('localStorageService');
+					} catch(err){}
+
+					if (typeof localStorageService !== "undefined" && localStorageService.isSupported) {
+						var data = localStorageService.get($scope.storageIdentifier);
+						if (typeof data !== "undefined" && data !== null) {
+							processServerResults(data, isInitial);
+							$scope.pagination.page -= 1;
+							isInitial = false;
+						}
+					}
+				}
 				angular.extend(queryParams, $scope.initialQueryArgs);
 			}
 
@@ -505,6 +533,41 @@ angular.module('viewportFactory',[])
 			if (isInitial && typeof $scope.firstFetchFinished !== "undefined") {
 				$scope.firstFetchFinished();
 			}
+
+			updateStorage();
+
+		}
+
+		function updateStorage() {
+			if (!$scope.allowLocalStorage) {
+				return;
+			}
+
+			var isArray = angular.isArray($scope.serverData);
+			var localStorageService;
+			try {
+				localStorageService = $injector.get('localStorageService');
+			} catch(err){}
+
+			if (typeof localStorageService !== "undefined" && localStorageService.isSupported) {
+				var cacheData;
+				if (!isArray) {
+				 	cacheData = angular.extend({}, $scope.serverData);
+				 	if ($scope.pageSize) {
+				 		cacheData[$scope.arrayAttr] = $scope.allObjects.slice(0, $scope.pageSize);
+				 	} else {
+				 		cacheData[$scope.arrayAttr] = $scope.allObjects;
+				 	}
+				} else {
+					if ($scope.pageSize) {
+						cacheData = $scope.allObjects.slice(0, $scope.pageSize);
+					} else {
+						cacheData = $scope.allObjects;
+					}
+
+				}
+				localStorageService.set($scope.storageIdentifier, cacheData);
+			}
 		}
 
 		/**
@@ -580,6 +643,10 @@ angular.module('viewportFactory',[])
 				$scope.resetViewport();
 			}
 
+			if ($scope.allowLocalStorage) {
+				updateStorage();
+			}
+
 			return notifiableObjects;
 		};
 
@@ -616,6 +683,10 @@ angular.module('viewportFactory',[])
 
 			if (!$scope.flags.isSearching && shouldResetViewport) {
 				$scope.resetViewport();
+			}
+
+			if ($scope.allowLocalStorage) {
+				updateStorage();
 			}
 		};
 
