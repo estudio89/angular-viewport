@@ -561,6 +561,9 @@ angular.module('viewportFactory',[])
 				 	cacheData = angular.extend({}, $scope.serverData);
 				 	if ($scope.pageSize) {
 				 		cacheData[$scope.arrayAttr] = $scope.allObjects.slice(0, $scope.pageSize);
+				 		if (cacheData.next === null && $scope.allObjects.length > $scope.pageSize) {
+				 			cacheData.next = true;
+				 		}
 				 	} else {
 				 		cacheData[$scope.arrayAttr] = $scope.allObjects;
 				 	}
