@@ -463,6 +463,10 @@ angular.module('viewportFactory',[])
 			}
 
 			ObjectService.query(queryParams,function(data) {
+				if ($scope.flags.isSearching && queryParams.search !== $scope.currentSearch) {
+					// search took too long and user typed something else
+					return;
+				}
 				processServerResults(data, isInitial, dontIncrementPage);
 			});
 		};
