@@ -1,5 +1,5 @@
 /**
-	VERSION 0.0.8
+	VERSION 0.0.9
 */
 angular.module('viewportFactory',[])
 
@@ -776,7 +776,7 @@ angular.module('viewportFactory',[])
 				if ($scope.searchText === "") {
 					$scope.onClearSearch();
 				} else {
-					$scope.onSearch(true);
+					$scope.onSearch(false);
 				}
 			})
 		}
