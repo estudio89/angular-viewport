@@ -776,7 +776,7 @@ angular.module('viewportFactory',[])
 				if ($scope.searchText === "") {
 					$scope.onClearSearch();
 				} else {
-					$scope.onSearch(true);
+					$scope.onSearch(false);
 				}
 			})
 		}
