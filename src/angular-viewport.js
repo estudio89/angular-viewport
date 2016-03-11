@@ -1,3 +1,6 @@
+/**
+	VERSION 0.0.8
+*/
 angular.module('viewportFactory',[])
 
 .directive('paginationControls',[function(){
@@ -462,8 +465,9 @@ angular.module('viewportFactory',[])
 				queryParams.search = $scope.currentSearch;
 			}
 
+			var wasSearching = $scope.flags.isSearching;
 			ObjectService.query(queryParams,function(data) {
-				if ($scope.flags.isSearching && queryParams.search !== $scope.currentSearch) {
+				if (wasSearching && queryParams.search !== $scope.currentSearch) {
 					// search took too long and user typed something else
 					return;
 				}
