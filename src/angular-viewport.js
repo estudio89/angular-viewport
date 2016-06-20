@@ -353,6 +353,9 @@ angular.module('viewportFactory',[])
 			} else {
 				$scope.pagination.firstItem = $scope.pageSize * ($scope.pagination.page - 1) + 1;
 				$scope.pagination.lastItem = $scope.pagination.firstItem + $scope.objectsViewport.length - 1;
+				if ($scope.pagination.lastItem === 0) {
+					$scope.pagination.firstItem = 0;
+				}
 			}
 
 			$scope.pagination.numberPages = Math.ceil($scope.pagination.numberResults/$scope.pageSize);
