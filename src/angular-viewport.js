@@ -31,6 +31,7 @@ angular.module('viewportFactory',[])
 					     this method will be called instead.
 			- autoSearch: boolean indicating if search should be performed as the user is typing. If false, onSearch() must be called whenever
 					      the search must be performed. Defaults to false.
+			- autoSearchMin: minimum number of letters necessary to trigger auto search. Defaults to zero.
 			- initialQueryArgs: object to be passed as a parameter to ObjectService when new objects are fetched for the first time. Note
 						that in the first fetch, both these args as well as "queryArgs" will be sent to the server.
 			- shouldLoad: boolean indicating if the objects should be loaded from the server right after the viewport is initialized.
@@ -119,6 +120,9 @@ angular.module('viewportFactory',[])
 
 		// Boolean indicating if search should be performed as user types
 		$scope.autoSearch = options["autoSearch"];
+
+		// Integer indicating the minimum number of letters that must be typed before auto search kicks in
+		$scope.autoSearchMin = options["autoSearchMin"] || 0;
 
 		// Boolean indicating if pages should be cached
 		$scope.caching = options["caching"];
@@ -783,7 +787,9 @@ angular.module('viewportFactory',[])
 				if ($scope.searchText === "") {
 					$scope.onClearSearch();
 				} else {
-					$scope.onSearch(false);
+					if (newVal.length >= $scope.autoSearchMin){
+						$scope.onSearch(false);
+					}
 				}
 			})
 		}
