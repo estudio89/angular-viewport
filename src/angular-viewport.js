@@ -49,6 +49,7 @@ angular.module('viewportFactory',[])
 			- eventPolling: string indicating the name of the event that should trigger a reprocessing of the viewport. This event should
 						    be used only when using GlobalPolling.
 			- caching: boolean indicating if caching is enabled. Defaults to true;
+			- queryMethod: name of the method to be called on the ObjectService when querying for data. Defaults to "query".
 
 		Pre processing updates:
 			If some action is needed before processing an update, the original scope can implement the method $scope.preProcessUpdate. If implemented,
@@ -112,6 +113,9 @@ angular.module('viewportFactory',[])
 
 		// Object passed as an argument to the query method
 		$scope.queryArgs = angular.extend({}, options['queryArgs']);
+
+		// Method to be called on ObjectService when querying for items
+		$scope.queryMethod = options['queryMethod'] || "query";
 
 		// Boolean indicating if search should be performed as user types
 		$scope.autoSearch = options["autoSearch"];
@@ -469,7 +473,7 @@ angular.module('viewportFactory',[])
 			}
 
 			var wasSearching = $scope.flags.isSearching;
-			ObjectService.query(queryParams,function(data) {
+			ObjectService[$scope.queryMethod](queryParams,function(data) {
 				if (wasSearching && queryParams.search !== $scope.currentSearch) {
 					// search took too long and user typed something else
 					return;
