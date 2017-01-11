@@ -292,6 +292,7 @@ angular.module('viewportFactory',[])
 		$scope.removeObject = function(object) {
 			var idx = $scope.allObjects.indexOfObject(object);
 			$scope.allObjects.splice(idx, 1);
+			$scope.pagination.numberResults--;
 			$scope.resetViewport();
 		};
 
