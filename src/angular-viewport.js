@@ -1,5 +1,5 @@
 /**
-	VERSION 0.0.13
+	VERSION 0.0.14
 */
 angular.module('viewportFactory',[])
 
@@ -702,7 +702,7 @@ angular.module('viewportFactory',[])
 			var shouldResetViewport = false;
 			deletedObjects.forEach(function(object,idx){
 				var id = getObjectId(object);
-				var oldIdx = $scope.allObjects.indexOfObject({"id":id});
+				var oldIdx = $scope.findObjectToDelete(id);
 				if (oldIdx !== -1) {
 					// We have an object that must be deleted
 					$scope.allObjects.splice(oldIdx, 1);
@@ -718,6 +718,12 @@ angular.module('viewportFactory',[])
 				updateStorage();
 			}
 		};
+
+		$scope.findObjectToDelete = function(idToDelete) {
+			// This method is meant to allow overriding this logic.
+
+			return $scope.allObjects.indexOfObject({"id":idToDelete});
+		}
 
 		/**
 			Helper function that finds the id of an object.
