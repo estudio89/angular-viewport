@@ -31,6 +31,7 @@ angular.module('viewportFactory',[])
 					     this method will be called instead.
 			- autoSearch: boolean indicating if search should be performed as the user is typing. If false, onSearch() must be called whenever
 					      the search must be performed. Defaults to false.
+	        - initialSearchText: string containing the search text to be used initially. Defaults to undefined.
 			- autoSearchMin: minimum number of letters necessary to trigger auto search. Defaults to zero.
 			- initialQueryArgs: object to be passed as a parameter to ObjectService when new objects are fetched for the first time. Note
 						that in the first fetch, both these args as well as "queryArgs" will be sent to the server.
@@ -209,7 +210,7 @@ angular.module('viewportFactory',[])
 		var emptyPagination = angular.copy($scope.pagination);
 
 		// Variable bound to the search input field
-		$scope.searchText = "";
+		$scope.searchText = options.initialSearchText || "";
 
 		// Current search term
 		$scope.currentSearch = "";
